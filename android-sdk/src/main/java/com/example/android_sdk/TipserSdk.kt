@@ -1,9 +1,7 @@
 package com.example.android_sdk
 
-import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import com.android.volley.Request
 import com.android.volley.toolbox.Volley
@@ -11,30 +9,36 @@ import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.AuthFailureError
+import org.json.JSONObject
+import android.content.Intent
+import androidx.core.content.ContextCompat.startActivity
 
 
-val BASE_TIPSER_URL = "https://tipser.com"
 val BASE_TIPSER_API_URL = "https://t3-prod-api.tipser.com"
-val TOKEN =
-    "eyJraWQiOm51bGwsImFsZyI6IlJTNTEyIn0.eyJpc3MiOiJUaXBzZXIiLCJqdGkiOiJ3RVhsTUhIZkxvVWdmWjB0QWxsZ2p3IiwiaWF0IjoxNTc1NjM4OTUxLCJleHAiOjE2MDcxNzQ5NTEsImNhcnRJZCI6IjVkZWE1N2E3ZGZhNzNlMDAwMTRjYzU4ZSJ9.RUAheE6_plw4QrLAUh5yyBXpdaIm5OxrXPeou4oaxqwxX_jMeEkn-kyFqE4lWPjr6a3POu_jSoON4QQyZGq9V9Kkean2kbDRhqnUmEHnl4QVRrttXbZ-sJsqHur6cYmjv_ZQl_6A-_lZRJUeilOY9RuXjo_oaZTGq-07-PHwinxCaGx49rmLmYtlPZhO-E-z86nUKg4884VvjSeel_sSaMy_m3PuJ4L8lw-zdPyMkrEQ0SRAuTxDyd40LjXMpw83vH_tQlTzZRv031Vz5iP9_5MCBq2HLYYTSXKoUvNB3sz5dJe7h9z6LiSkR2BFh6LfHX9hL-NbUKu-GeC7Sgpyfw"
 val COOKIE_DOMAIN = "www.tipser.com"
 val TOKEN_INVALID = "TOKEN_INVALID"
 val TIPSER_TOKEN_KEY = "tipserToken"
 
-// 1. add product to cart => response ma token
-class TipserSdk {
+class TipserSdk(activityContext: AppCompatActivity) {
     private lateinit var webView: WebView
     private lateinit var queue: RequestQueue
     private lateinit var token: String
+    private val context = activityContext;
 
-    fun addToCart(productId: String) {
+    fun addToCart(productId: String, onSuccess: () -> Unit) {
         val token = this.token
+        val jsonBody = JSONObject()
+        jsonBody.put("posArticle", "tipser")
+        jsonBody.put("posData", "")
+        jsonBody.put("posId", "")
+        jsonBody.put("productId", productId)
+        jsonBody.put("quantity", 1)
+        val requestBody = jsonBody.toString()
+
         val jsObjRequest = object : StringRequest(
             Request.Method.POST,
             "$BASE_TIPSER_API_URL/v3/shoppingcart/items",
-            Response.Listener<String> { response ->
-
-            },
+            Response.Listener<String> { response -> onSuccess()},
             Response.ErrorListener { e -> e.printStackTrace() }) {
             @Throws(AuthFailureError::class)
             override fun getHeaders(): Map<String, String> {
@@ -43,17 +47,19 @@ class TipserSdk {
                 return params
             }
 
-            override fun getBody(): ByteArray {
+            override fun getBodyContentType(): String {
+                return "application/json; charset=utf-8"
+            }
 
-                return super.getBody()
+            override fun getBody(): ByteArray {
+                return requestBody.toByteArray()
             }
         }
         queue.add(jsObjRequest)
-        this.webView.loadUrl("https://www.tisper.com/wi/5075d7715c3d090a90585e87/direct-to-checkout?productId=$productId")
     }
 
-    fun init(activityContext: AppCompatActivity) {
-        this.queue = Volley.newRequestQueue(activityContext)
+    fun init() {
+        this.queue = Volley.newRequestQueue(this.context)
         CookieManager.getInstance().setAcceptCookie(true)
         val getNewToken = fun() {
             val jsObjRequest = StringRequest(
@@ -78,7 +84,7 @@ class TipserSdk {
                     Response.Listener<String> { response ->
                         if (response == TOKEN_INVALID) {
                             getNewToken()
-                        } else if(response != this.token){
+                        } else if (response != this.token) {
                             CookieManager.getInstance()
                                 .setCookie(COOKIE_DOMAIN, "$TIPSER_TOKEN_KEY=$response;")
                         }
@@ -100,33 +106,9 @@ class TipserSdk {
         }
     }
 
-    fun initWebView(activityContext: AppCompatActivity) {
-//        CookieManager.getInstance().setCookie(parsedURL.host, "")
-        this.webView = WebView(activityContext)
-
-        this.webView.webViewClient = WebViewClient()
-
-
-//        this.webView.visibility = View.GONE
-        activityContext.setContentView(this.webView)
-        this.webView.settings.domStorageEnabled = true
-        this.webView.settings.javaScriptEnabled = true
-        this.webView.loadUrl("https://tipser.com/checkout")
-    }
-
     fun goToCheckout() {
-
-    }
-
-    fun getCartSize() {
-    }
-
-    fun directToCheckout() {
-
-    }
-
-    fun showCart() {
-        this.webView.loadUrl("https://www.tipser.com/checkout")
+        val intent = Intent(this.context, CheckoutActivity::class.java)
+        startActivity(this.context, intent, null)
     }
 
 }
