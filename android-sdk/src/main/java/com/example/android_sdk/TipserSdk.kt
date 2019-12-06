@@ -25,8 +25,30 @@ val TIPSER_TOKEN_KEY = "tipserToken"
 class TipserSdk {
     private lateinit var webView: WebView
     private lateinit var queue: RequestQueue
+    private lateinit var token: String
 
     fun addToCart(productId: String) {
+        val token = this.token
+        val jsObjRequest = object : StringRequest(
+            Request.Method.POST,
+            "$BASE_TIPSER_API_URL/v3/shoppingcart/items",
+            Response.Listener<String> { response ->
+
+            },
+            Response.ErrorListener { e -> e.printStackTrace() }) {
+            @Throws(AuthFailureError::class)
+            override fun getHeaders(): Map<String, String> {
+                val params = HashMap<String, String>()
+                params["authorization"] = "Bearer $token"
+                return params
+            }
+
+            override fun getBody(): ByteArray {
+
+                return super.getBody()
+            }
+        }
+        queue.add(jsObjRequest)
         this.webView.loadUrl("https://www.tisper.com/wi/5075d7715c3d090a90585e87/direct-to-checkout?productId=$productId")
     }
 
@@ -48,15 +70,15 @@ class TipserSdk {
             val tipserTokenPart = cookie.split(";").map { v -> v.trim() }
                 .find { v -> v.startsWith("$TIPSER_TOKEN_KEY=") }
             if (tipserTokenPart != null) {
-                val tipserToken = tipserTokenPart.split("=")[1]
-
+                val token = tipserTokenPart.split("=")[1]
+                this.token = token
                 val jsObjRequest = object : StringRequest(
                     Request.Method.GET,
                     "$BASE_TIPSER_API_URL/v3/auth/token",
                     Response.Listener<String> { response ->
                         if (response == TOKEN_INVALID) {
                             getNewToken()
-                        } else {
+                        } else if(response != this.token){
                             CookieManager.getInstance()
                                 .setCookie(COOKIE_DOMAIN, "$TIPSER_TOKEN_KEY=$response;")
                         }
@@ -65,7 +87,7 @@ class TipserSdk {
                     @Throws(AuthFailureError::class)
                     override fun getHeaders(): Map<String, String> {
                         val params = HashMap<String, String>()
-                        params["authorization"] = "Bearer $tipserToken"
+                        params["authorization"] = "Bearer $token"
                         return params
                     }
                 }
