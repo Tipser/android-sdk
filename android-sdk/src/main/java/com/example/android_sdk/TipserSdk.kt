@@ -5,12 +5,11 @@ import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import com.android.volley.Request
+import com.android.volley.*
 import com.android.volley.toolbox.Volley
-import com.android.volley.RequestQueue
-import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
-import com.android.volley.AuthFailureError
+import com.android.volley.toolbox.JsonObjectRequest
+import org.json.JSONObject
 
 
 val BASE_TIPSER_URL = "https://tipser.com"
@@ -102,16 +101,38 @@ class TipserSdk {
 
     fun initWebView(activityContext: AppCompatActivity) {
 //        CookieManager.getInstance().setCookie(parsedURL.host, "")
-        this.webView = WebView(activityContext)
+        val queue = Volley.newRequestQueue(activityContext)
+        val url = "https://t3-dev-api.tipser.com/v3/checkout"
 
-        this.webView.webViewClient = WebViewClient()
+        Log.i("aaaaaa", "about to send")
 
+        val jsObjRequest = JsonObjectRequest(
+            Request.Method.POST,
+            url,
+            null,
+            object : Response.Listener<JSONObject> {
 
-//        this.webView.visibility = View.GONE
-        activityContext.setContentView(this.webView)
-        this.webView.settings.domStorageEnabled = true
-        this.webView.settings.javaScriptEnabled = true
-        this.webView.loadUrl("https://tipser.com/checkout")
+                override fun onResponse(response: JSONObject) {
+                    val klarnaSnippet = response.get("htmlSnippet").toString()
+                    Log.i("aaaaaa", klarnaSnippet)
+                }
+            },
+            object : Response.ErrorListener {
+
+                override fun onErrorResponse(error: VolleyError) {
+                    Log.i("aaaaaa", error.toString())
+                }
+            }
+        ) {
+            @Throws(AuthFailureError::class)
+            override fun getHeaders(): Map<String, String> {
+                val params = HashMap<String, String>()
+                params["authorization"] = "Bearer $token"
+                return params
+            }
+
+        queue.add(jsObjRequest)
+
     }
 
     fun goToCheckout() {
@@ -126,7 +147,7 @@ class TipserSdk {
     }
 
     fun showCart() {
-        this.webView.loadUrl("https://www.tipser.com/checkout")
+
     }
 
 }
