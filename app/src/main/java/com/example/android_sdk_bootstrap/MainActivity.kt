@@ -12,19 +12,24 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val sdk = TipserSdk(this)
-        sdk.init()
 
         val addToCartButton = this.findViewById(R.id.button) as Button
         val showCart = this.findViewById(R.id.button2) as Button
 
-        addToCartButton.setOnClickListener { v ->
-            sdk.addToCart("5da5c5139af3ba00010b41bc") {
-                val text = "Product added to cart!"
-                val duration = Toast.LENGTH_SHORT
-                val toast = Toast.makeText(applicationContext, text, duration)
-                toast.show()
-            }
+        addToCartButton.setOnClickListener {
+            sdk.addToCart(
+                "5da5c5139af3ba00010b41bc",
+                1,
+                { showToast("Product added to cart!") },
+                { showToast("Something went wrong :(") })
         }
+
         showCart.setOnClickListener { sdk.goToCheckout() }
+    }
+
+    private fun showToast(text: String) {
+        val duration = Toast.LENGTH_SHORT
+        val toast = Toast.makeText(applicationContext, text, duration)
+        toast.show()
     }
 }
